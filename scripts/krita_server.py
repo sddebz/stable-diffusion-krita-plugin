@@ -85,12 +85,12 @@ async def read_item():
 
 
 @app.get("/txt2img")
-async def f_txt2img(orig_width: int, orig_height: int):
+async def f_txt2img(orig_width: int, orig_height: int, prompt: str):
     print(f"txt2img")
 
     opt = load_config()['txt2img']
     width, height = fix_aspect_ratio(opt, orig_width, orig_height)
-    output_images, seed, info, stats = txt2img(prompt=collect_prompt(opt),
+    output_images, seed, info, stats = txt2img(prompt=prompt or collect_prompt(opt),
                                                ddim_steps=opt['ddim_steps'],
                                                sampler_name=opt['sampler_name'],
                                                toggles=[1 if opt['normalize_prompt_weights'] else None,
@@ -116,14 +116,14 @@ async def f_txt2img(orig_width: int, orig_height: int):
 
 
 @app.get("/img2img")
-async def f_img2img(src_path: str):
+async def f_img2img(src_path: str, prompt: str):
     print(f"src path: {src_path}")
 
     opt = load_config()['img2img']
     image = imgtools.load_img(src_path)
     orig_width, orig_height = image.size
     width, height = fix_aspect_ratio(opt, orig_width, orig_height)
-    output_images, seed, info, stats = img2img(prompt=collect_prompt(opt),
+    output_images, seed, info, stats = img2img(prompt=prompt or collect_prompt(opt),
                                                image_editor_mode='Crop',
                                                init_info=image,
                                                mask_mode='Keep masked area',

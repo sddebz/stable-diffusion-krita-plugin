@@ -57,3 +57,7 @@ condaenv.*.requirements.txt
 /log/**/*.png
 /log/log.csv
 /flagged/*
+
+# krita plugin
+/krita/input
+/krita/output

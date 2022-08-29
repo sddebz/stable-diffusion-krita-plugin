@@ -13,8 +13,9 @@ https://user-images.githubusercontent.com/112324253/187082905-1b41816e-1705-433b
 2. Open Krita
 3. Select area you want to use. If you have no selection, whole image will be used
 4. Press Ctrl + Alt + Q (txt2img) or Ctrl + Alt + W (img2img)
-5. Look at progress bar in your server console window
-6. Plugin will insert generated images as new layers into Krita. Only last one will be set visible. Selection will be
+5. Type optional prompt. If left empty it will use the prompt defined in krita_config.yaml
+6. Look at progress bar in your server console window
+7. Plugin will insert generated images as new layers into Krita. Only last one will be set visible. Selection will be
    converted into transparency mask on the last layer.
 
 Image in Krita has to be RGBA 8bit, you need to select some layer to proceed. Plugin uses merged image as a source for img2img.

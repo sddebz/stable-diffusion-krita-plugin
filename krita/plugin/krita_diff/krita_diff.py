@@ -3,6 +3,7 @@ import urllib.request
 import json
 
 from krita import *
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QPushButton, QLineEdit
 
 workaround_timeout = 100
 base_url = "http://127.0.0.1:8000"
@@ -32,8 +33,9 @@ class Script:
             print(res)
             return json.loads(res)
 
-    def txt2img(self):
+    def txt2img(self, prompt=""):
         params = {
+            "prompt": prompt,
             "orig_width": self.width,
             "orig_height": self.height
         }
@@ -43,8 +45,9 @@ class Script:
             print(res)
             return json.loads(res)['outputs']
 
-    def img2img(self, path):
+    def img2img(self, path, prompt=""):
         params = {
+            "prompt": prompt,
             "src_path": path
         }
         query_string = urllib.parse.urlencode(params)
@@ -101,17 +104,17 @@ class Script:
         print(f"created mask layer")
         self.doc.setSelection(self.selection)
 
-    def apply_txt2img(self):
-        outputs = self.txt2img()
+    def apply_txt2img(self, prompt=""):
+        outputs = self.txt2img(prompt)
         print(f"Getting images: {outputs}")
         for i, output in enumerate(outputs):
             self.insert_img(output, i + 1 == len(outputs))
         self.doc.refreshProjection()
 
-    def apply_img2img(self):
+    def apply_img2img(self, prompt=""):
         path = self.opt['new_img']
         self.save_img(path)
-        outputs = self.img2img(path)
+        outputs = self.img2img(path, prompt)
         print(f"Getting images: {outputs}")
         for i, output in enumerate(outputs):
             self.insert_img(output, i + 1 == len(outputs))
@@ -137,13 +140,21 @@ class MyExtension(Extension):
 
     def action_txt2img(self):
         script = Script()
-        script.apply_txt2img()
-        QTimer.singleShot(workaround_timeout, self.action_mask)
+        
+        def on_enter(prompt):
+            script.apply_txt2img(prompt)
+            QTimer.singleShot(workaround_timeout, self.action_mask)
+        prompt_dialog = PromptDialog("txt2img Prompt")
+        prompt_dialog.start(on_enter)
 
     def action_img2img(self):
         script = Script()
-        script.apply_img2img()
-        QTimer.singleShot(workaround_timeout, self.action_mask)
+
+        def on_enter(prompt):
+            script.apply_img2img(prompt)
+            QTimer.singleShot(workaround_timeout, self.action_mask)
+        prompt_dialog = PromptDialog("img2img Prompt")
+        prompt_dialog.start(on_enter)
 
     def action_upscale(self):
         script = Script()
@@ -162,6 +173,29 @@ class MyExtension(Extension):
         upscale_x_action = window.createAction("upscale_x", "Apply upscale transform", "tools/scripts")
         upscale_x_action.triggered.connect(self.action_upscale)
 
+class PromptDialog:
+    def __init__(self, title):
+        self.title = title
+
+    def start(self, callback):
+        textInput = QLineEdit()
+        enterButton = QPushButton("Submit")
+
+        layout = QVBoxLayout()
+        layout.addWidget(textInput)
+        layout.addWidget(enterButton)
+
+        newDialog = QDialog()
+        newDialog.setWindowTitle(self.title)
+        newDialog.setLayout(layout)
+        newDialog.setFixedWidth(400)
+        def enter_text():
+            prompt_text = textInput.text()
+            newDialog.close()
+            callback(prompt_text)
+        textInput.returnPressed.connect(enter_text)
+        enterButton.clicked.connect(enter_text)
+        newDialog.exec_()
 
 # And add the extension to Krita's list of extensions:
 Krita.instance().addExtension(MyExtension(Krita.instance()))
