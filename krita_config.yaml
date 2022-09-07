@@ -12,6 +12,8 @@ txt2img:
   batch_size: 1
   tiling: false
 
+  use_nsfw_filter: false
+
   use_gfpgan: false
   use_realesrgan: false
   realesrgan_model_name: RealESRGAN_x4plus_anime_6B
@@ -38,6 +40,8 @@ img2img:
   inpainting_fill: 0
   inpaint_full_res: false
   mask_blur: 0
+
+  use_nsfw_filter: false
 
   use_gfpgan: false
   use_realesrgan: false

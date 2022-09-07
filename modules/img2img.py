@@ -9,7 +9,31 @@ from modules.ui import plaintext_to_html
 import modules.images as images
 import modules.scripts
 
-def img2img(prompt: str, init_img, init_img_with_mask, steps: int, sampler_index: int, mask_blur: int, inpainting_fill: int, use_GFPGAN: bool, tiling: bool, mode: int, n_iter: int, batch_size: int, cfg_scale: float, denoising_strength: float, seed: int, height: int, width: int, resize_mode: int, upscaler_index: str, upscale_overlap: int, inpaint_full_res: bool, inpainting_mask_invert: int, *args):
+def img2img(
+        prompt: str,
+        init_img,
+        init_img_with_mask,
+        steps: int,
+        sampler_index: int,
+        mask_blur: int,
+        inpainting_fill: int,
+        use_GFPGAN: bool,
+        tiling: bool,
+        mode: int,
+        n_iter: int,
+        batch_size: int,
+        cfg_scale: float,
+        denoising_strength: float,
+        seed: int, height: int,
+        width: int,
+        resize_mode: int,
+        upscaler_index: str,
+        upscale_overlap: int,
+        inpaint_full_res: bool,
+        use_nsfw_filter: bool,
+        inpainting_mask_invert: int,
+        *args
+):
     is_inpaint = mode == 1
     is_loopback = mode == 2
     is_upscale = mode == 3
@@ -61,7 +85,7 @@ def img2img(prompt: str, init_img, init_img_with_mask, steps: int, sampler_index
             p.do_not_save_grid = True
 
             state.job = f"Batch {i + 1} out of {n_iter}"
-            processed = process_images(p)
+            processed = process_images(p, use_nsfw_filter)
 
             if initial_seed is None:
                 initial_seed = processed.seed
@@ -107,7 +131,7 @@ def img2img(prompt: str, init_img, init_img_with_mask, steps: int, sampler_index
             p.init_images = work[i*p.batch_size:(i+1)*p.batch_size]
 
             state.job = f"Batch {i + 1} out of {batch_count}"
-            processed = process_images(p)
+            processed = process_images(p, use_nsfw_filter)
 
             if initial_seed is None:
                 initial_seed = processed.seed
@@ -131,10 +155,10 @@ def img2img(prompt: str, init_img, init_img_with_mask, steps: int, sampler_index
 
     else:
 
-        processed = modules.scripts.scripts_img2img.run(p, *args)
+        processed = modules.scripts.scripts_img2img.run(p, use_nsfw_filter, *args)
 
         if processed is None:
-            processed = process_images(p)
+            processed = process_images(p, use_nsfw_filter)
 
 
     return processed.images, processed.js(), plaintext_to_html(processed.info)

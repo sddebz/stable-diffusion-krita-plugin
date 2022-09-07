@@ -78,6 +78,7 @@ class Txt2ImgRequest(BaseModel):
     sampler_name: Optional[str]
     steps: Optional[int]
     cfg_scale: Optional[float]
+    use_nsfw_filter: Optional[bool]
 
     batch_count: Optional[int]
     batch_size: Optional[int]
@@ -99,6 +100,7 @@ class Img2ImgRequest(BaseModel):
     steps: Optional[int]
     cfg_scale: Optional[float]
     denoising_strength: Optional[float]
+    use_nsfw_filter: Optional[bool]
 
     batch_count: Optional[int]
     batch_size: Optional[int]
@@ -180,7 +182,8 @@ async def f_txt2img(req: Txt2ImgRequest):
         seed,
         height,
         width,
-        0
+        req.use_nsfw_filter or opt['use_nsfw_filter'],
+        0,
     )
 
     sample_path = opt['sample_path']
@@ -247,8 +250,9 @@ async def f_img2img(req: Img2ImgRequest):
         upscaler_index,
         req.upscale_overlap or opt['upscale_overlap'],
         req.inpaint_full_res or opt['inpaint_full_res'],
+        req.use_nsfw_filter or opt['use_nsfw_filter'],
         0,
-        0
+        0,
     )
 
     resized_images = [images.resize_image(0, image, orig_width, orig_height) for image in output_images]

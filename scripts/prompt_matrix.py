@@ -47,7 +47,7 @@ class Script(scripts.Script):
 
         return [put_at_start]
 
-    def run(self, p, put_at_start):
+    def run(self, p, put_at_start, use_nsfw_filter):
         seed = int(random.randrange(4294967294) if p.seed == -1 else p.seed)
 
         original_prompt = p.prompt[0] if type(p.prompt) == list else p.prompt
@@ -73,7 +73,7 @@ class Script(scripts.Script):
         p.prompt = all_prompts
         p.prompt_for_display = original_prompt
         p.seed = len(all_prompts) * [seed]
-        processed = process_images(p)
+        processed = process_images(p, use_nsfw_filter)
 
         grid = images.image_grid(processed.images, p.batch_size, rows=1 << ((len(prompt_matrix_parts) - 1) // 2))
         grid = images.draw_prompt_matrix(grid, p.width, p.height, prompt_matrix_parts)
