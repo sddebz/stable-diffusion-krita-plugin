@@ -9,31 +9,7 @@ from modules.ui import plaintext_to_html
 import modules.images as images
 import modules.scripts
 
-def img2img(
-        prompt: str,
-        init_img,
-        init_img_with_mask,
-        steps: int,
-        sampler_index: int,
-        mask_blur: int,
-        inpainting_fill: int,
-        use_GFPGAN: bool,
-        tiling: bool,
-        mode: int,
-        n_iter: int,
-        batch_size: int,
-        cfg_scale: float,
-        denoising_strength: float,
-        seed: int, height: int,
-        width: int,
-        resize_mode: int,
-        upscaler_index: str,
-        upscale_overlap: int,
-        inpaint_full_res: bool,
-        use_nsfw_filter: bool,
-        inpainting_mask_invert: int,
-        *args
-):
+def img2img(prompt: str, init_img, init_img_with_mask, steps: int, sampler_index: int, mask_blur: int, inpainting_fill: int, use_GFPGAN: bool, tiling: bool, mode: int, n_iter: int, batch_size: int, cfg_scale: float, denoising_strength: float, seed: int, height: int, width: int, resize_mode: int, upscaler_index: str, upscale_overlap: int, inpaint_full_res: bool, use_nsfw_filter: bool, inpainting_mask_invert: int, *args):
     is_inpaint = mode == 1
     is_loopback = mode == 2
     is_upscale = mode == 3
