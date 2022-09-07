@@ -48,7 +48,7 @@ class Script(QObject):
         self.set_cfg('txt2img_max_size', 704, if_empty)
         self.set_cfg('txt2img_seed', "", if_empty)
         self.set_cfg('txt2img_tiling', False, if_empty)
-
+        self.set_cfg('use_nsfw_filter', False, if_empty)
         self.set_cfg('img2img_prompt', "", if_empty)
         self.set_cfg('img2img_sampler', samplers_img2img.index("k_euler_a"), if_empty)
         self.set_cfg('img2img_steps', 50, if_empty)

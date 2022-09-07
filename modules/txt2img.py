@@ -6,22 +6,7 @@ import modules.processing as processing
 from modules.ui import plaintext_to_html
 
 
-def txt2img(
-        prompt: str,
-        negative_prompt: str,
-        steps: int,
-        sampler_index: int,
-        use_GFPGAN: bool,
-        tiling: bool,
-        n_iter: int,
-        batch_size: int,
-        cfg_scale: float,
-        seed: int,
-        height: int,
-        width: int,
-        use_nsfw_filter: bool,
-        *args
-):
+def txt2img(prompt: str, negative_prompt: str, steps: int, sampler_index: int, use_GFPGAN: bool, tiling: bool, n_iter: int, batch_size: int, cfg_scale: float, seed: int, height: int, width: int, use_nsfw_filter: bool, *args):
     p = StableDiffusionProcessingTxt2Img(
         sd_model=shared.sd_model,
         outpath_samples=opts.outdir_samples or opts.outdir_txt2img_samples,
