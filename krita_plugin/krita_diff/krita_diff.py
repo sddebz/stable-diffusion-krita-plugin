@@ -61,7 +61,7 @@ class Script(QObject):
         self.set_cfg('img2img_seed', "", if_empty)
         self.set_cfg('img2img_tiling', False, if_empty)
         self.set_cfg('img2img_upscaler_name', 0, if_empty)
-
+        self.set_cfg('img2img_use_gfpgan', False, if_empty)
         self.set_cfg('upscale_upscaler_name', 0, if_empty)
         self.set_cfg('upscale_downscale_first', False, if_empty)
 
@@ -108,7 +108,8 @@ class Script(QObject):
         params = {
             "orig_width": self.width,
             "orig_height": self.height,
-            "prompt": self.cfg('txt2img_prompt', str) if not self.cfg('txt2img_prompt', str).isspace() else None,
+            "prompt": self.fix_prompt(
+                self.cfg('txt2img_prompt', str) if not self.cfg('txt2img_prompt', str).isspace() else None),
             "sampler_name": samplers[self.cfg('txt2img_sampler', int)],
             "steps": self.cfg('txt2img_steps', int),
             "cfg_scale": self.cfg('txt2img_cfg_scale', float),
@@ -135,7 +136,8 @@ class Script(QObject):
             "mode": mode,
             "src_path": path,
             "mask_path": mask_path,
-            "prompt": self.cfg('img2img_prompt', str) if not self.cfg('img2img_prompt', str).isspace() else None,
+            "prompt": self.fix_prompt(
+                self.cfg('img2img_prompt', str) if not self.cfg('img2img_prompt', str).isspace() else None),
             "sampler_name": samplers_img2img[self.cfg('img2img_sampler', int)],
             "steps": self.cfg('img2img_steps', int),
             "cfg_scale": self.cfg('img2img_cfg_scale', float),
@@ -164,6 +166,9 @@ class Script(QObject):
             "src_path": path
         }
         return self.post(self.cfg('base_url', str) + '/upscale', params)
+
+    def fix_prompt(self, prompt):
+        return ', '.join(filter(bool, [x.strip() for x in prompt.splitlines()]))
 
     def find_final_aspect_ratio(self):
         base_size = self.cfg('img2img_base_size', int)
