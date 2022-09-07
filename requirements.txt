@@ -1,3 +1,8 @@
+transformers==4.19.2
+diffusers
+invisible-watermark
+git+https://github.com/crowsonkb/k-diffusion.git
+git+https://github.com/TencentARC/GFPGAN.git
 basicsr
 gfpgan
 gradio
@@ -8,3 +13,4 @@ torch
 transformers
 omegaconf
 pytorch_lightning
+numpy

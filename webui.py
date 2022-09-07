@@ -1,6 +1,5 @@
 import os
 import threading
-
 from modules.paths import script_path
 
 import torch
