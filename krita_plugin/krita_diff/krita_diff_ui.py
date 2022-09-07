@@ -479,6 +479,8 @@ class KritaSDPluginDocker(DockWidget):
         self.config_base_url_layout.addWidget(self.config_base_url)
         self.config_base_url_layout.addWidget(self.config_base_url_reset)
 
+        self.config_use_nsfw_filter = QCheckBox("NSFW Filter")
+        self.config_use_nsfw_filter.setTristate(True)
         self.config_just_use_yaml = QCheckBox("Use only YAML config, ignore these properties")
         self.config_just_use_yaml.setTristate(False)
         self.config_create_mask_layer = QCheckBox("Create transparency mask layer from selection")
@@ -495,6 +497,7 @@ class KritaSDPluginDocker(DockWidget):
         self.config_layout = QVBoxLayout()
         self.config_layout.addWidget(self.config_base_url_label)
         self.config_layout.addLayout(self.config_base_url_layout)
+        self.config_layout.addWidget(self.config_use_nsfw_filter)
         self.config_layout.addWidget(self.config_just_use_yaml)
         self.config_layout.addWidget(self.config_create_mask_layer)
         self.config_layout.addWidget(self.config_delete_temp_files)
@@ -508,6 +511,8 @@ class KritaSDPluginDocker(DockWidget):
 
     def init_config_interface(self):
         self.config_base_url.setText(script.cfg('base_url', str))
+        self.config_use_nsfw_filter.setCheckState(
+            Qt.CheckState.Checked if script.cfg('config_use_nsfw_filter', bool) else Qt.CheckState.Unchecked)
         self.config_just_use_yaml.setCheckState(
             Qt.CheckState.Checked if script.cfg('just_use_yaml', bool) else Qt.CheckState.Unchecked)
         self.config_create_mask_layer.setCheckState(
@@ -525,6 +530,9 @@ class KritaSDPluginDocker(DockWidget):
         )
         self.config_base_url_reset.released.connect(
             lambda: self.config_base_url.setText(default_url)
+        )
+        self.config_use_nsfw_filter.toggled.connect(
+            partial(script.set_cfg, "use_nsfw_filter")
         )
         self.config_just_use_yaml.toggled.connect(
             partial(script.set_cfg, "just_use_yaml")

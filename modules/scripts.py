@@ -123,7 +123,7 @@ class ScriptRunner:
         return inputs
 
 
-    def run(self, p: StableDiffusionProcessing, *args):
+    def run(self, p: StableDiffusionProcessing, use_nsfw_filter, *args):
         script_index = args[0]
 
         if script_index == 0:
@@ -135,7 +135,7 @@ class ScriptRunner:
             return None
 
         script_args = args[script.args_from:script.args_to]
-        processed = script.run(p, *script_args)
+        processed = script.run(p, use_nsfw_filter, *script_args)
 
         return processed
 

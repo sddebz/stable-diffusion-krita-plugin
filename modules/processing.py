@@ -10,6 +10,7 @@ from PIL import Image, ImageFilter, ImageOps
 import random
 
 import modules.sd_hijack
+from modules.safety_check import check_safety
 from modules.sd_hijack import model_hijack
 from modules.sd_samplers import samplers, samplers_for_img2img
 from modules.shared import opts, cmd_opts, state
@@ -29,7 +30,28 @@ def torch_gc():
 
 
 class StableDiffusionProcessing:
-    def __init__(self, sd_model=None, outpath_samples=None, outpath_grids=None, prompt="", seed=-1, sampler_index=0, batch_size=1, n_iter=1, steps=50, cfg_scale=7.0, width=512, height=512, use_GFPGAN=False, tiling=False, do_not_save_samples=True, do_not_save_grid=True, extra_generation_params=None, overlay_images=None, negative_prompt=None):
+    def __init__(
+            self,
+            sd_model=None,
+            outpath_samples=None,
+            outpath_grids=None,
+            prompt="",
+            seed=-1,
+            sampler_index=0,
+            batch_size=1,
+            n_iter=1,
+            steps=50,
+            cfg_scale=7.0,
+            width=512,
+            height=512,
+            use_GFPGAN=False,
+            tiling=False,
+            do_not_save_samples=True,
+            do_not_save_grid=True,
+            extra_generation_params=None,
+            overlay_images=None,
+            negative_prompt=None
+    ):
         self.sd_model = sd_model
         self.outpath_samples: str = outpath_samples
         self.outpath_grids: str = outpath_grids
@@ -99,7 +121,7 @@ def create_random_tensors(shape, seeds):
     return x
 
 
-def process_images(p: StableDiffusionProcessing) -> Processed:
+def process_images(p: StableDiffusionProcessing, use_nsfw_filter: bool) -> Processed:
     """this is the main loop that both txt2img and img2img use; it calls func_init once inside all the scopes and func_sample once per batch"""
 
     prompt = p.prompt
@@ -176,6 +198,11 @@ def process_images(p: StableDiffusionProcessing) -> Processed:
 
             x_samples_ddim = p.sd_model.decode_first_stage(samples_ddim)
             x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+
+            if use_nsfw_filter:
+                x_samples_ddim = x_samples_ddim.cpu().permute(0, 2, 3, 1).numpy()
+                x_checked_image, has_nsfw_concept = check_safety(x_samples_ddim)
+                x_samples_ddim = torch.from_numpy(x_checked_image).permute(0, 3, 1, 2)
 
             for i, x_sample in enumerate(x_samples_ddim):
                 x_sample = 255. * np.moveaxis(x_sample.cpu().numpy(), 0, 2)
@@ -288,7 +315,7 @@ def fill(image, mask):
 class StableDiffusionProcessingImg2Img(StableDiffusionProcessing):
     sampler = None
 
-    def __init__(self, init_images=None, resize_mode=0, denoising_strength=0.75, mask=None, mask_blur=4, inpainting_fill=0, inpaint_full_res=True, inpainting_mask_invert=0, **kwargs):
+    def __init__(self, init_images=None, resize_mode=0, denoising_strength=0.75, mask=None, mask_blur=4, inpainting_fill=0, inpaint_full_res=True, inpainting_mask_invert=0, use_nsfw_filter=False, **kwargs):
         super().__init__(**kwargs)
 
         self.init_images = init_images
@@ -305,6 +332,7 @@ class StableDiffusionProcessingImg2Img(StableDiffusionProcessing):
         self.inpainting_mask_invert = inpainting_mask_invert
         self.mask = None
         self.nmask = None
+        self.use_nsfw_filter = use_nsfw_filter,
 
     def init(self):
         self.sampler = samplers_for_img2img[self.sampler_index].constructor(self.sd_model)
