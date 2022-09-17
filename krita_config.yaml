@@ -13,14 +13,17 @@ txt2img:
   tiling: false
 
   use_gfpgan: false
+  face_restorer: "CodeFormer"
+  codeformer_weight: 0.5
   use_realesrgan: false
   realesrgan_model_name: RealESRGAN_x4plus_anime_6B
-  sample_path: '../../outputs/krita-out'
+  sample_path: 'outputs/krita-out'
 
 img2img:
   mode: 0 # 0 - default, 1 - inpaint, 3 - upscale, 2 - loopback (unsupported)
 
   prompts: "dog"
+  negative_prompt: ""
   sampler_name: k_euler_a
   steps: 50
   cfg_scale: 12.0
@@ -31,6 +34,7 @@ img2img:
   max_size: 704
   batch_size: 1
   tiling: false
+  mask_invert: false
 
   upscale_overlap: 64
   upscaler_name: "None" # None, Lanczos, RealESRGAN
@@ -40,15 +44,17 @@ img2img:
   mask_blur: 0
 
   use_gfpgan: false
+  face_restorer: "CodeFormer"
+  codeformer_weight: 0.5
   use_realesrgan: false
   realesrgan_model_name: RealESRGAN_x4plus_anime_6B
   resize_mode: 1
-  sample_path: '../../outputs/krita-out'
+  sample_path: 'outputs/krita-out'
 
 upscale:
   upscaler_name: None
-  sample_path: '../../outputs/krita-out'
+  sample_path: 'outputs/krita-out'
   downscale_first: false
 
 plugin:
-  sample_path: '../../outputs/krita-in'
+  sample_path: 'outputs/krita-in'

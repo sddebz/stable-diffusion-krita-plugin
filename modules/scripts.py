@@ -6,6 +6,7 @@ import modules.ui as ui
 import gradio as gr
 
 from modules.processing import StableDiffusionProcessing
+from modules import shared
 
 class Script:
     filename = None
@@ -41,10 +42,10 @@ def load_scripts(basedir):
         if not os.path.isfile(path):
             continue
 
-        with open(path, "r", encoding="utf8") as file:
-            text = file.read()
-
         try:
+            with open(path, "r", encoding="utf8") as file:
+                text = file.read()
+
             from types import ModuleType
             compiled = compile(text, path, 'exec')
             module = ModuleType(filename)
@@ -136,6 +137,8 @@ class ScriptRunner:
 
         script_args = args[script.args_from:script.args_to]
         processed = script.run(p, *script_args)
+
+        shared.total_tqdm.clear()
 
         return processed
 
