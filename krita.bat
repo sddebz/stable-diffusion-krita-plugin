@@ -3,7 +3,8 @@
 set PYTHON=python
 set GIT=git
 set COMMANDLINE_ARGS=
-set VENV_DIR=venv
+set VENV_DIR=
+set KMP_DUPLICATE_LIB_OK=TRUE
 
 mkdir tmp 2>NUL
 
