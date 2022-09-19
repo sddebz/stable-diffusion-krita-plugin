@@ -306,18 +306,20 @@ class Script(QObject):
         path_filename   = os.path.basename(path)
         mask_filename   = os.path.basename(mask_path)
 
-        self.save_img(path)
         if mode == MODE_INPAINT:
             print(f'Saving mask locally: {mask_path}')
             self.save_img(mask_path, is_mask=True)
+            self.node.setVisible(False)
+            self.doc.refreshProjection()
+        self.save_img(path)
 
-        response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(path_filename,open(path,'rb'),'image/jpeg'))])
+        response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(path_filename,open(path,'rb'),'image/png'))])
         if response.status_code != 200:
             print(f"Error while uploading image to server: {response.status_code}")
             return
 
         if mode == MODE_INPAINT:
-            response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(mask_filename,open(path,'rb'),'image/jpeg'))])
+            response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(mask_filename,open(mask_path,'rb'),'image/png'))])
             if response.status_code != 200:
                 print(f"Error while uploading image to server: {response.status_code}")
                 return
