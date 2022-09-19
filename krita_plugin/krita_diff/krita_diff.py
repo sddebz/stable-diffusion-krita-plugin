@@ -3,15 +3,25 @@ import os
 import urllib.parse
 import urllib.request
 import json
+from urllib import request, parse
 
+import requests
 from krita import *
 
 default_url = "http://127.0.0.1:8000"
+# get an OS-sane tmp dir
+default_tmp_dir = os.path.join(os.path.expanduser("~"), "tmp")
 
 samplers = ["DDIM", "PLMS", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms']
 samplers_img2img = ["DDIM", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms']
 upscalers = ["None", "Lanczos"]
-face_restorers = ["None", "CodeFormer", "GFPGAN"]
+realesrgan_models = ['RealESRGAN_x4plus', 'RealESRGAN_x4plus_anime_6B']
+
+MODE_IMG2IMG = 0
+MODE_INPAINT = 1
+MODE_SD_UPSCALE = 3
+
+
 
 class Script(QObject):
     def __init__(self):
@@ -36,8 +46,8 @@ class Script(QObject):
         self.set_cfg('png_quality', -1, if_empty)
         self.set_cfg('fix_aspect_ratio', True, if_empty)
         self.set_cfg('only_full_img_tiling', True, if_empty)
-        self.set_cfg('face_restorer_model', face_restorers.index("CodeFormer"), if_empty)
-        self.set_cfg('codeformer_weight', 0.5, if_empty)
+        self.set_cfg('fetch_remote_images', False, if_empty)
+        self.set_cfg('tmp_dir', default_tmp_dir, if_empty)
 
         self.set_cfg('txt2img_prompt', "", if_empty)
         self.set_cfg('txt2img_sampler', samplers.index("k_euler_a"), if_empty)
@@ -52,7 +62,6 @@ class Script(QObject):
         self.set_cfg('txt2img_tiling', False, if_empty)
 
         self.set_cfg('img2img_prompt', "", if_empty)
-        self.set_cfg('img2img_negative_prompt', "", if_empty)
         self.set_cfg('img2img_sampler', samplers_img2img.index("k_euler_a"), if_empty)
         self.set_cfg('img2img_steps', 50, if_empty)
         self.set_cfg('img2img_cfg_scale', 12.0, if_empty)
@@ -64,7 +73,6 @@ class Script(QObject):
         self.set_cfg('img2img_seed', "", if_empty)
         self.set_cfg('img2img_use_gfpgan', False, if_empty)
         self.set_cfg('img2img_tiling', False, if_empty)
-        self.set_cfg('img2img_invert_mask', False, if_empty)
         self.set_cfg('img2img_upscaler_name', 0, if_empty)
 
         self.set_cfg('upscale_upscaler_name', 0, if_empty)
@@ -115,7 +123,6 @@ class Script(QObject):
             "orig_height": self.height,
             "prompt": self.fix_prompt(
                 self.cfg('txt2img_prompt', str) if not self.cfg('txt2img_prompt', str).isspace() else None),
-            "negative_prompt": self.fix_prompt(self.cfg('txt2img_negative_prompt', str)) if not self.cfg('txt2img_negative_prompt', str).isspace() else None,
             "sampler_name": samplers[self.cfg('txt2img_sampler', int)],
             "steps": self.cfg('txt2img_steps', int),
             "cfg_scale": self.cfg('txt2img_cfg_scale', float),
@@ -125,9 +132,7 @@ class Script(QObject):
             "max_size": self.cfg('txt2img_max_size', int),
             "seed": self.cfg('txt2img_seed', str) if not self.cfg('txt2img_seed', str).isspace() else '',
             "tiling": tiling,
-            "use_gfpgan": self.cfg("txt2img_use_gfpgan", bool),
-            "face_restorer": face_restorers[self.cfg("face_restorer_model", int)],
-            "codeformer_weight": self.cfg("codeformer_weight", float)
+            "use_gfpgan": self.cfg("txt2img_use_gfpgan", bool)
         } if not self.cfg('just_use_yaml', bool) else {
             "orig_width": self.width,
             "orig_height": self.height
@@ -136,15 +141,15 @@ class Script(QObject):
 
     def img2img(self, path, mask_path, mode):
         tiling = self.cfg('txt2img_tiling', bool)
-        if mode == 2 or (self.cfg("only_full_img_tiling", bool) and self.selection is not None):
+        if mode == MODE_SD_UPSCALE or (self.cfg("only_full_img_tiling", bool) and self.selection is not None):
             tiling = False
 
         params = {
             "mode": mode,
             "src_path": path,
             "mask_path": mask_path,
-            "prompt": self.fix_prompt(self.cfg('img2img_prompt', str)) if not self.cfg('img2img_prompt', str).isspace() else None,
-            "negative_prompt": self.fix_prompt(self.cfg('img2img_negative_prompt', str)) if not self.cfg('img2img_negative_prompt', str).isspace() else None,
+            "prompt": self.fix_prompt(
+                self.cfg('img2img_prompt', str) if not self.cfg('img2img_prompt', str).isspace() else None),
             "sampler_name": samplers_img2img[self.cfg('img2img_sampler', int)],
             "steps": self.cfg('img2img_steps', int),
             "cfg_scale": self.cfg('img2img_cfg_scale', float),
@@ -155,10 +160,7 @@ class Script(QObject):
             "max_size": self.cfg('img2img_max_size', int),
             "seed": self.cfg('img2img_seed', str) if not self.cfg('img2img_seed', str).isspace() else '',
             "tiling": tiling,
-            "invert_mask": False, #self.cfg('img2img_invert_mask', bool), - not implemented yet
             "use_gfpgan": self.cfg("img2img_use_gfpgan", bool),
-            "face_restorer": face_restorers[self.cfg("face_restorer_model", int)],
-            "codeformer_weight": self.cfg("codeformer_weight", float),
             "upscaler_name": upscalers[self.cfg('img2img_upscaler_name', int)]
         } if not self.cfg('just_use_yaml', bool) else {
             "src_path": path,
@@ -258,7 +260,16 @@ class Script(QObject):
         ptr.setsize(image.byteCount())
         return QByteArray(ptr.asstring())
 
-    def insert_img(self, layer_name, path, visible=True):
+    def insert_img(self, layer_name, qimage, visible=True):
+        layer = self.create_layer(layer_name)
+        ba = self.image_to_ba(qimage)
+
+        if not visible:
+            layer.setVisible(False)
+        layer.setPixelData(ba, self.x, self.y, self.width, self.height)
+        print(f"inserted image to layer: {layer}")
+
+    def insert_img_from_path(self, layer_name, path, visible=True):
         image = QImage()
         image.load(path, "PNG")
         ba = self.image_to_ba(image)
@@ -273,43 +284,90 @@ class Script(QObject):
     def apply_txt2img(self):
         response = self.txt2img()
         outputs = response['outputs']
-        print(f"Getting images: {outputs}")
+
+        print(f'Fetching remote images from server. Images: {outputs}')
         for i, output in enumerate(outputs):
-            self.insert_img(f"txt2img {i + 1}: {os.path.basename(output)}", output, i + 1 == len(outputs))
-        self.clear_temp_images(outputs)
+            url = self.cfg('base_url', str) + '/result'
+
+            data = json.dumps({'file_name': output}).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers={'content-type': 'application/json'})
+            response = urllib.request.urlopen(req)
+
+            image = QImage()
+            image.loadFromData(response.read(), "PNG")
+
+            layer = self.create_layer(f"txt2img {i + 1}: {output}")
+            layer.setPixelData(self.image_to_ba(image), self.x, self.y, self.width, self.height)
+
         self.doc.refreshProjection()
 
     def apply_img2img(self, mode):
-        path = self.opt['new_img']
-        mask_path = self.opt['new_img_mask']
+        path        = self.cfg('tmp_dir', str) + '/img2img.png'
+        mask_path   = self.cfg('tmp_dir', str) + '/img2img_mask.png'
+        path_filename   = os.path.basename(path)
+        mask_filename   = os.path.basename(mask_path)
+
         self.save_img(path)
-        if mode == 1:
+        if mode == MODE_INPAINT:
+            print(f'Saving mask locally: {mask_path}')
             self.save_img(mask_path, is_mask=True)
 
-        response = self.img2img(path, mask_path, mode)
-        outputs = response['outputs']
-        print(f"Getting images: {outputs}")
-        layer_name_prefix = "inpaint" if mode == 1 else "sd upscale" if mode == 2 else "img2img"
-        for i, output in enumerate(outputs):
-            self.insert_img(f"{layer_name_prefix} {i + 1}: {os.path.basename(output)}", output, i + 1 == len(outputs))
+        response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(path_filename,open(path,'rb'),'image/jpeg'))])
+        if response.status_code != 200:
+            print(f"Error while uploading image to server: {response.status_code}")
+            return
 
-        if mode == 1:
-            self.clear_temp_images([path, mask_path, *outputs])
+        if mode == MODE_INPAINT:
+            response = requests.request("POST", self.cfg('base_url', str) + '/saveimg', files=[('file',(mask_filename,open(path,'rb'),'image/jpeg'))])
+            if response.status_code != 200:
+                print(f"Error while uploading image to server: {response.status_code}")
+                return
+
+        response = self.img2img(path_filename, mask_filename, mode)
+        outputs = response['outputs']
+
+        print(f"Getting images: {outputs}")
+        layer_name_prefix = "inpaint" if mode == MODE_INPAINT else "sd upscale" if mode == MODE_SD_UPSCALE else "img2img"
+        for i, output in enumerate(outputs):
+            req = urllib.request.Request(url = self.cfg('base_url', str) + '/result',
+                                         data=json.dumps({'file_name': os.path.basename(output)}).encode('utf-8'),
+                                         headers={'content-type': 'application/json'})
+            response = urllib.request.urlopen(req)
+            qimage = QImage()
+            qimage.loadFromData(response.read(), "PNG")
+
+            self.insert_img(f"{layer_name_prefix} {i + 1}: {os.path.basename(output)}", qimage, i + 1 == len(outputs))
+
+        if mode == MODE_INPAINT:
+            self.clear_temp_images([path, mask_path])
         else:
-            self.clear_temp_images([path, *outputs])
+            self.clear_temp_images([path])
 
         self.doc.refreshProjection()
 
     def apply_simple_upscale(self):
-        path = self.opt['new_img']
-        self.save_img(path)
+        path = self.cfg('tmp_dir', str) + '/simple_upscale.png'
+        path_filename = os.path.basename(path)
 
-        response = self.simple_upscale(path)
+        self.save_img(path)
+        response = requests.request("POST", self.cfg('base_url', str) + '/saveimg',
+                                    files=[('file',(path_filename,open(path,'rb'),'image/png'))])
+        if response.status_code != 200:
+            print(f"Error while uploading image to server: {response.status_code}")
+            return
+
+        response = self.simple_upscale(path_filename)
         output = response['output']
         print(f"Getting image: {output}")
+        req = urllib.request.Request(url = self.cfg('base_url', str) + '/result',
+                                     data=json.dumps({'file_name': os.path.basename(output)}).encode('utf-8'),
+                                     headers={'content-type': 'application/json'})
+        response = urllib.request.urlopen(req)
+        qimage = QImage()
+        qimage.loadFromData(response.read(), "PNG")
 
-        self.insert_img(f"upscale: {os.path.basename(output)}", output)
-        self.clear_temp_images([path, output])
+        self.insert_img(f"upscale: {path_filename}", qimage)
+        self.clear_temp_images([path])
         self.doc.refreshProjection()
 
     def create_mask_layer_internal(self):
@@ -345,14 +403,14 @@ class Script(QObject):
             pass
         self.update_config()
         self.try_fix_aspect_ratio()
-        self.apply_img2img(mode=0)
+        self.apply_img2img(mode=MODE_IMG2IMG)
         self.create_mask_layer_workaround()
 
     def action_sd_upscale(self):
         if self.working:
             pass
         self.update_config()
-        self.apply_img2img(mode=2)
+        self.apply_img2img(mode=MODE_SD_UPSCALE)
         self.create_mask_layer_workaround()
 
     def action_inpaint(self):
@@ -360,7 +418,7 @@ class Script(QObject):
             pass
         self.update_config()
         self.try_fix_aspect_ratio()
-        self.apply_img2img(mode=1)
+        self.apply_img2img(mode=MODE_INPAINT)
 
     def action_simple_upscale(self):
         if self.working:
