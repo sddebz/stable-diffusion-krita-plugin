@@ -46,7 +46,6 @@ class Script(QObject):
         self.set_cfg('png_quality', -1, if_empty)
         self.set_cfg('fix_aspect_ratio', True, if_empty)
         self.set_cfg('only_full_img_tiling', True, if_empty)
-        self.set_cfg('fetch_remote_images', False, if_empty)
         self.set_cfg('tmp_dir', default_tmp_dir, if_empty)
 
         self.set_cfg('txt2img_prompt', "", if_empty)

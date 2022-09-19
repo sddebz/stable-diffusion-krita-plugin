@@ -489,8 +489,6 @@ class KritaSDPluginDocker(DockWidget):
         self.config_fix_aspect_ratio.setTristate(False)
         self.config_only_full_img_tiling = QCheckBox("Allow tiling only with no selection (on full image)")
         self.config_only_full_img_tiling.setTristate(False)
-        self.config_fetch_remote_images = QCheckBox("Fetch image results from non-local server")
-        self.config_fetch_remote_images.setTristate(False)
 
         self.config_tmp_dir_label = QLabel("Temporary directory:")
         self.config_tmp_dir = QLineEdit()
@@ -510,7 +508,6 @@ class KritaSDPluginDocker(DockWidget):
         self.config_layout.addWidget(self.config_fix_aspect_ratio)
         self.config_layout.addWidget(self.config_only_full_img_tiling)
         self.config_layout.addWidget(self.config_restore_defaults)
-        self.config_layout.addWidget(self.config_fetch_remote_images)
         self.config_layout.addWidget(self.config_tmp_dir_label)
         self.config_layout.addLayout(self.config_tmp_dir_layout)
         self.config_layout.addStretch()
@@ -530,8 +527,6 @@ class KritaSDPluginDocker(DockWidget):
             Qt.CheckState.Checked if script.cfg('fix_aspect_ratio', bool) else Qt.CheckState.Unchecked)
         self.config_only_full_img_tiling.setCheckState(
             Qt.CheckState.Checked if script.cfg('only_full_img_tiling', bool) else Qt.CheckState.Unchecked)
-        self.config_fetch_remote_images.setCheckState(
-            Qt.CheckState.Checked if script.cfg('fetch_remote_images', bool) else Qt.CheckState.Unchecked)
         self.config_tmp_dir.setText(script.cfg('tmp_dir', str))
 
     def connect_config_interface(self):
@@ -555,9 +550,6 @@ class KritaSDPluginDocker(DockWidget):
         )
         self.config_only_full_img_tiling.toggled.connect(
             partial(script.set_cfg, "only_full_img_tiling")
-        )
-        self.config_fetch_remote_images.toggled.connect(
-            partial(script.set_cfg, "fetch_remote_images")
         )
         self.config_tmp_dir.textChanged.connect(
             partial(script.set_cfg, "tmp_dir")
