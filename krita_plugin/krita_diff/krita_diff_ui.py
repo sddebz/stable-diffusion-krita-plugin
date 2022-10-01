@@ -52,11 +52,13 @@ class KritaSDPluginDocker(DockWidget):
 
         self.init_txt2img_interface()
         self.init_img2img_interface()
+        self.init_modifiers_interface()
         self.init_upscale_interface()
         self.init_config_interface()
 
         self.connect_txt2img_interface()
         self.connect_img2img_interface()
+        self.connect_modifiers_interface()
         self.connect_upscale_interface()
         self.connect_config_interface()
 
@@ -65,12 +67,14 @@ class KritaSDPluginDocker(DockWidget):
     def create_interface(self):
         self.create_txt2img_interface()
         self.create_img2img_interface()
+        self.create_modifiers_interface()
         self.create_upscale_interface()
         self.create_config_interface()
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.txt2img_widget, "Txt2Img")
         self.tabs.addTab(self.img2img_widget, "Img2Img")
+        self.tabs.addTab(self.modifiers_widget, "Modifiers")
         self.tabs.addTab(self.upscale_widget, "Upscale")
         self.tabs.addTab(self.config_widget, "Config")
 
@@ -200,6 +204,8 @@ class KritaSDPluginDocker(DockWidget):
         self.txt2img_tiling.setCheckState(
             Qt.CheckState.Checked if script.cfg('txt2img_tiling', bool) else Qt.CheckState.Unchecked)
 
+
+
     def connect_txt2img_interface(self):
         self.txt2img_prompt_text.textChanged.connect(
             lambda: script.set_cfg("txt2img_prompt", self.txt2img_prompt_text.toPlainText())
@@ -241,6 +247,7 @@ class KritaSDPluginDocker(DockWidget):
         self.txt2img_start_button.released.connect(
             lambda: script.action_txt2img()
         )
+
 
     def create_img2img_interface(self):
         self.img2img_prompt_label = QLabel("Prompt:")
@@ -339,7 +346,7 @@ class KritaSDPluginDocker(DockWidget):
 
         self.img2img_use_gfpgan = QCheckBox("Restore faces")
         self.img2img_use_gfpgan.setTristate(False)
-        
+
         self.img2img_upscaler_name_label = QLabel("Prescaler for SD upscale:")
         self.img2img_upscaler_name = QComboBox()
         self.img2img_upscaler_name.addItems(upscalers)
@@ -375,6 +382,7 @@ class KritaSDPluginDocker(DockWidget):
 
         self.img2img_widget = QWidget()
         self.img2img_widget.setLayout(self.img2img_layout)
+
 
     def init_img2img_interface(self):
         self.img2img_prompt_text.setPlainText(script.cfg('img2img_prompt', str))
@@ -455,6 +463,61 @@ class KritaSDPluginDocker(DockWidget):
         )
         self.img2img_inpaint_button.released.connect(
             lambda: script.action_inpaint()
+        )
+
+
+    def create_modifiers_interface(self):
+        self.modifiers_layout = QVBoxLayout()
+
+        self.modifiers_clear_button = QPushButton("Clear modifiers")
+        self.modifiers_clear_button.setObjectName("clear_modifiers")
+        self.modifiers_layout.addWidget(self.modifiers_clear_button)
+
+        self.modifiers_tree = QTreeWidget()
+        self.modifiers_tree.setObjectName("modifiers")
+        self.modifiers_tree.headerItem().setText(0, "Modifiers")
+        self.modifiers_layout.addWidget(self.modifiers_tree)
+
+        self.modifiers_widget = QWidget()
+        self.modifiers_widget.setLayout(self.modifiers_layout)
+
+    def init_modifiers_interface(self):
+        for (category , values) in styles.items():
+            categoryitem = QtWidgets.QTreeWidgetItem(self.modifiers_tree)
+            categoryitem.setText(0, category)
+            for (i, value) in enumerate(values):
+                item = QtWidgets.QTreeWidgetItem(categoryitem)
+                child= categoryitem.child(i)
+                item.setText(0, value)
+                if value in script.cfg("modifiers", str):
+                    child.setCheckState(0, Qt.Checked)
+                else:
+                    child.setCheckState(0, Qt.Unchecked)
+
+    def update_modifiers(self):
+        modifiers = ''
+        for i in range(self.modifiers_tree.topLevelItemCount()):
+            item = self.modifiers_tree.topLevelItem(i)
+            for j in range(item.childCount()):
+                child = item.child(j)
+                if child.checkState(0):
+                    modifiers += ', '+child.text(0)
+        script.set_cfg("modifiers", modifiers)
+
+    def clear_modifiers(self):
+        for i in range(self.modifiers_tree.topLevelItemCount()):
+            item = self.modifiers_tree.topLevelItem(i)
+            for j in range(item.childCount()):
+                child = item.child(j)
+                child.setCheckState(0, Qt.Unchecked)
+        self.update_modifiers()
+
+    def connect_modifiers_interface(self):
+        self.modifiers_tree.itemClicked.connect(
+            lambda: self.update_modifiers()
+        )
+        self.modifiers_clear_button.released.connect(
+            lambda: self.clear_modifiers()
         )
 
     def create_upscale_interface(self):
