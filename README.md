@@ -1,4 +1,12 @@
-# Stable Diffusion Krita Plugin
+# This repo will not be updated in the near future. 
+
+You should try to use the latest webui plugin, which seem to support the latest webui features and is updated regularly: 
+
+https://github.com/Interpause/auto-sd-paint-ext
+
+I'm sorry for your inconvinience. I can't maintain this repo due to some personal issues.
+
+## Stable Diffusion Krita Plugin
 A simple interface based on this repository: https://github.com/AUTOMATIC1111/stable-diffusion-webui
 
 Requires Krita 5.1
