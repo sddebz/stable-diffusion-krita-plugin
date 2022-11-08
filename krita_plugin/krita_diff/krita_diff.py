@@ -12,6 +12,101 @@ samplers = ["DDIM", "PLMS", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_h
 samplers_img2img = ["DDIM", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms']
 upscalers = ["None", "Lanczos"]
 face_restorers = ["None", "CodeFormer", "GFPGAN"]
+styles = {'styles': ["studio ghibili",
+                     "steampunk",
+                     'cyberpunk',
+                     'dieselpunk',
+                     "oil painting",
+                     'concept art',
+                     'digital painting',
+                     'intrincate detail',
+                     'baroque',
+                     'realistic',
+                     'hyperrealistic',
+                     'photorealistic',
+                     'pencil',
+                     'comic book',
+                     'gothic',
+                     'smooth',
+                     'illustration',
+                     'surreal',
+                     'matte painting',
+                     'pixelart',
+                     'pixar'],
+          'artists': ['by greg rutkowsky',
+                      'by hayao miyazaki',
+                      'by makoto shinkai',
+                      'by jules julien',
+                      'by delacroix',
+                      'by jesper ejsing',
+                      'by moebius',
+                      'by pablo picasso',
+                      'by rembrandt',
+                      'by salvador dali',
+                      'by velazquez',
+                      'by bansky',
+                      'by edvard munch',
+                      'by escher'],
+          'image': ['highly detailed',
+                    'high resolution',
+                    'hd',
+                    'sharp focus',
+                    '8k',
+                    '4k',
+                    'centered',
+                    'rule of thirthds',
+                    'blurry background',
+                    'beautiful composition'],
+          'light': ['volumetric lighting',
+                    'cinematic lighting',
+                    'moody lighting',
+                    'dramatic lighting',
+                    'beautiful lighting',
+                    'rim light',
+                    'sun light',
+                    'dynamic lighting',
+                    'studio lighting',
+                    'realistic lighting',
+                    'gas lighting',
+                    'ambient lighting',
+                    'radiant light',
+                    'magnificent lighting',
+                    'gradient light blue',
+                    'diffuse lighting',
+                    'warm lighting'],
+          'colors' :['vaporwave colors',
+                     'mystical colors',
+                     'vibrant colors',
+                     'vivid colors',
+                     'red color bleed',
+                     'radiant colors',
+                     'muted colors',
+                     'bright colors',
+                     'black and white',
+                     'iridiscent colors',
+                     'botanic watercolors',
+                     'rich colors',
+                     'pastel colors',
+                     'matte colors',
+                     'flat colors',
+                     'natural colors'],
+          'devices': ['octane render',
+                      'vray',
+                      'unreal engine 5',
+                      'canon eos r 3',
+                      'nikon d3300',
+                      'sony a7 3',
+                      'rendered in cinema4d',
+                      'redshift render',
+                      'blender cycles render',
+                      'renderman'],
+          'others': ['artstation',
+                     'deviantart',
+                     'masterpiece',
+                     'moody vibe',
+                     'minimalism']}
+
+
 
 class Script(QObject):
     def __init__(self):
@@ -33,7 +128,6 @@ class Script(QObject):
         self.set_cfg('create_mask_layer', True, if_empty)
         self.set_cfg('delete_temp_files', True, if_empty)
         self.set_cfg('workaround_timeout', 100, if_empty)
-        self.set_cfg('png_quality', -1, if_empty)
         self.set_cfg('fix_aspect_ratio', True, if_empty)
         self.set_cfg('only_full_img_tiling', True, if_empty)
         self.set_cfg('face_restorer_model', face_restorers.index("CodeFormer"), if_empty)
@@ -66,6 +160,8 @@ class Script(QObject):
         self.set_cfg('img2img_tiling', False, if_empty)
         self.set_cfg('img2img_invert_mask', False, if_empty)
         self.set_cfg('img2img_upscaler_name', 0, if_empty)
+
+        self.set_cfg('modifiers', '', if_empty)
 
         self.set_cfg('upscale_upscaler_name', 0, if_empty)
         self.set_cfg('upscale_downscale_first', False, if_empty)
@@ -109,12 +205,11 @@ class Script(QObject):
         tiling = self.cfg('txt2img_tiling', bool)
         if self.cfg("only_full_img_tiling", bool) and self.selection is not None:
             tiling = False
-
         params = {
             "orig_width": self.width,
             "orig_height": self.height,
             "prompt": self.fix_prompt(
-                self.cfg('txt2img_prompt', str) if not self.cfg('txt2img_prompt', str).isspace() else None),
+                self.cfg('txt2img_prompt', str)+self.cfg("modifiers", str) if not self.cfg('txt2img_prompt', str).isspace() else None),
             "negative_prompt": self.fix_prompt(self.cfg('txt2img_negative_prompt', str)) if not self.cfg('txt2img_negative_prompt', str).isspace() else None,
             "sampler_name": samplers[self.cfg('txt2img_sampler', int)],
             "steps": self.cfg('txt2img_steps', int),
@@ -143,7 +238,7 @@ class Script(QObject):
             "mode": mode,
             "src_path": path,
             "mask_path": mask_path,
-            "prompt": self.fix_prompt(self.cfg('img2img_prompt', str)) if not self.cfg('img2img_prompt', str).isspace() else None,
+            "prompt": self.fix_prompt(self.cfg('img2img_prompt', str)+self.cfg('modifiers', str)) if not self.cfg('img2img_prompt', str).isspace() else None,
             "negative_prompt": self.fix_prompt(self.cfg('img2img_negative_prompt', str)) if not self.cfg('img2img_negative_prompt', str).isspace() else None,
             "sampler_name": samplers_img2img[self.cfg('img2img_sampler', int)],
             "steps": self.cfg('img2img_steps', int),
