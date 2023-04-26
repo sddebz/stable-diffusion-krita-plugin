@@ -79,19 +79,13 @@ class KritaSDPluginDocker(DockWidget):
         self.widget = QWidget(self)
         self.widget.setLayout(self.layout)
 
-    # TODO: Add necessary UI components to match up with upstream changes.
     def create_txt2img_interface(self):
         self.txt2img_prompt_label = QLabel("Prompt:")
         self.txt2img_prompt_text = QPlainTextEdit()
         self.txt2img_prompt_text.setPlaceholderText("krita_config.yaml value will be used")
-        self.txt2img_negative_prompt_label = QLabel("Negative Prompt:")
-        self.txt2img_negative_prompt_text = QLineEdit()
-        self.txt2img_negative_prompt_text.setPlaceholderText("krita_config.yaml value will be used")
-        self.txt2img_prompt_layout = QVBoxLayout()
+        self.txt2img_prompt_layout = QHBoxLayout()
         self.txt2img_prompt_layout.addWidget(self.txt2img_prompt_label)
         self.txt2img_prompt_layout.addWidget(self.txt2img_prompt_text)
-        self.txt2img_prompt_layout.addWidget(self.txt2img_negative_prompt_label)
-        self.txt2img_prompt_layout.addWidget(self.txt2img_negative_prompt_text)
 
         self.txt2img_sampler_name_label = QLabel("Sampler:")
         self.txt2img_sampler_name = QComboBox()
@@ -158,7 +152,7 @@ class KritaSDPluginDocker(DockWidget):
         self.txt2img_seed_layout.addWidget(self.txt2img_seed_label)
         self.txt2img_seed_layout.addWidget(self.txt2img_seed)
 
-        self.txt2img_use_gfpgan = QCheckBox("Restore faces")
+        self.txt2img_use_gfpgan = QCheckBox("Enable GFPGAN (may fix faces)")
         self.txt2img_use_gfpgan.setTristate(False)
 
         self.txt2img_tiling = QCheckBox("Enable tiling mode")
@@ -186,7 +180,6 @@ class KritaSDPluginDocker(DockWidget):
 
     def init_txt2img_interface(self):
         self.txt2img_prompt_text.setPlainText(script.cfg('txt2img_prompt', str))
-        self.txt2img_negative_prompt_text.setText(script.cfg('txt2img_negative_prompt', str))
         self.txt2img_sampler_name.setCurrentIndex(script.cfg('txt2img_sampler', int))
         self.txt2img_steps.setValue(script.cfg('txt2img_steps', int))
         self.txt2img_cfg_scale.setValue(script.cfg('txt2img_cfg_scale', float))
@@ -203,10 +196,6 @@ class KritaSDPluginDocker(DockWidget):
     def connect_txt2img_interface(self):
         self.txt2img_prompt_text.textChanged.connect(
             lambda: script.set_cfg("txt2img_prompt", self.txt2img_prompt_text.toPlainText())
-        )
-        self.txt2img_negative_prompt_text.textChanged.connect(
-            lambda: script.set_cfg("txt2img_negative_prompt",
-                                   re.sub(r'\n', ', ', self.txt2img_negative_prompt_text.text()))
         )
         self.txt2img_sampler_name.currentIndexChanged.connect(
             partial(script.set_cfg, "txt2img_sampler")
@@ -246,14 +235,9 @@ class KritaSDPluginDocker(DockWidget):
         self.img2img_prompt_label = QLabel("Prompt:")
         self.img2img_prompt_text = QPlainTextEdit()
         self.img2img_prompt_text.setPlaceholderText("krita_config.yaml value will be used")
-        self.img2img_negative_prompt_label = QLabel("Negative Prompt:")
-        self.img2img_negative_prompt_text = QLineEdit()
-        self.img2img_negative_prompt_text.setPlaceholderText("krita_config.yaml value will be used")
-        self.img2img_prompt_layout = QVBoxLayout()
+        self.img2img_prompt_layout = QHBoxLayout()
         self.img2img_prompt_layout.addWidget(self.img2img_prompt_label)
         self.img2img_prompt_layout.addWidget(self.img2img_prompt_text)
-        self.img2img_prompt_layout.addWidget(self.img2img_negative_prompt_label)
-        self.img2img_prompt_layout.addWidget(self.img2img_negative_prompt_text)
 
         self.img2img_sampler_name_label = QLabel("Sampler:")
         self.img2img_sampler_name = QComboBox()
@@ -329,17 +313,12 @@ class KritaSDPluginDocker(DockWidget):
         self.img2img_seed_layout.addWidget(self.img2img_seed_label)
         self.img2img_seed_layout.addWidget(self.img2img_seed)
 
-        self.img2img_checkboxes_layout = QHBoxLayout()
         self.img2img_tiling = QCheckBox("Enable tiling mode")
         self.img2img_tiling.setTristate(False)
-        self.img2img_invert_mask = QCheckBox("Invert mask")
-        self.img2img_invert_mask.setTristate(False)
-        self.img2img_checkboxes_layout.addWidget(self.img2img_tiling)
-        # self.img2img_checkboxes_layout.addWidget(self.img2img_invert_mask)
 
-        self.img2img_use_gfpgan = QCheckBox("Restore faces")
+        self.img2img_use_gfpgan = QCheckBox("Enable GFPGAN (may fix faces)")
         self.img2img_use_gfpgan.setTristate(False)
-        
+
         self.img2img_upscaler_name_label = QLabel("Prescaler for SD upscale:")
         self.img2img_upscaler_name = QComboBox()
         self.img2img_upscaler_name.addItems(upscalers)
@@ -367,8 +346,7 @@ class KritaSDPluginDocker(DockWidget):
         self.img2img_layout.addLayout(self.img2img_size_layout)
         self.img2img_layout.addLayout(self.img2img_seed_layout)
         self.img2img_layout.addWidget(self.img2img_use_gfpgan)
-
-        self.img2img_layout.addLayout(self.img2img_checkboxes_layout)
+        self.img2img_layout.addWidget(self.img2img_tiling)
         self.img2img_layout.addLayout(self.img2img_upscaler_name_layout)
         self.img2img_layout.addLayout(self.img2img_button_layout)
         self.img2img_layout.addStretch()
@@ -378,7 +356,6 @@ class KritaSDPluginDocker(DockWidget):
 
     def init_img2img_interface(self):
         self.img2img_prompt_text.setPlainText(script.cfg('img2img_prompt', str))
-        self.img2img_negative_prompt_text.setText(script.cfg('img2img_negative_prompt', str))
         self.img2img_sampler_name.setCurrentIndex(script.cfg('img2img_sampler', int))
         self.img2img_steps.setValue(script.cfg('img2img_steps', int))
         self.img2img_cfg_scale.setValue(script.cfg('img2img_cfg_scale', float))
@@ -392,18 +369,12 @@ class KritaSDPluginDocker(DockWidget):
             Qt.CheckState.Checked if script.cfg('img2img_use_gfpgan', bool) else Qt.CheckState.Unchecked)
         self.img2img_tiling.setCheckState(
             Qt.CheckState.Checked if script.cfg('img2img_tiling', bool) else Qt.CheckState.Unchecked)
-        self.img2img_invert_mask.setCheckState(
-            Qt.CheckState.Checked if script.cfg('img2img_invert_mask', bool) else Qt.CheckState.Unchecked)
         self.img2img_upscaler_name.addItems(upscalers[self.img2img_upscaler_name.count():])
         self.img2img_upscaler_name.setCurrentIndex(script.cfg('img2img_upscaler_name', int))
 
     def connect_img2img_interface(self):
         self.img2img_prompt_text.textChanged.connect(
             lambda: script.set_cfg("img2img_prompt", self.img2img_prompt_text.toPlainText())
-        )
-        self.img2img_negative_prompt_text.textChanged.connect(
-            lambda: script.set_cfg("img2img_negative_prompt",
-                                   re.sub(r'\n', ', ', self.img2img_negative_prompt_text.text().strip()))
         )
         self.img2img_sampler_name.currentIndexChanged.connect(
             partial(script.set_cfg, "img2img_sampler")
@@ -437,9 +408,6 @@ class KritaSDPluginDocker(DockWidget):
         )
         self.img2img_tiling.toggled.connect(
             partial(script.set_cfg, "img2img_tiling")
-        )
-        self.img2img_invert_mask.toggled.connect(
-            partial(script.set_cfg, "img2img_invert_mask")
         )
         self.img2img_upscaler_name.currentIndexChanged.connect(
             partial(script.set_cfg, "img2img_upscaler_name")
@@ -504,7 +472,7 @@ class KritaSDPluginDocker(DockWidget):
         )
 
     def create_config_interface(self):
-        self.config_base_url_label = QLabel("Backend url (only local now):")
+        self.config_base_url_label = QLabel("Backend url:")
         self.config_base_url = QLineEdit()
         self.config_base_url_reset = QPushButton("Default")
         self.config_base_url_layout = QHBoxLayout()
@@ -522,21 +490,12 @@ class KritaSDPluginDocker(DockWidget):
         self.config_only_full_img_tiling = QCheckBox("Allow tiling only with no selection (on full image)")
         self.config_only_full_img_tiling.setTristate(False)
 
-        self.config_face_restorer_model_label = QLabel("Face restorer model:")
-        self.config_face_restorer_model = QComboBox()
-        self.config_face_restorer_model.addItems(face_restorers)
-        self.config_face_restorer_model_layout = QHBoxLayout()
-        self.config_face_restorer_model_layout.addWidget(self.config_face_restorer_model_label)
-        self.config_face_restorer_model_layout.addWidget(self.config_face_restorer_model)
-
-        self.config_codeformer_weight_label = QLabel("CodeFormer weight (0 - max effect, 1 - min effect)")
-        self.config_codeformer_weight = QDoubleSpinBox()
-        self.config_codeformer_weight.setMinimum(0.0)
-        self.config_codeformer_weight.setMaximum(1.0)
-        self.config_codeformer_weight.setSingleStep(0.01)
-        self.config_codeformer_weight_layout = QHBoxLayout()
-        self.config_codeformer_weight_layout.addWidget(self.config_codeformer_weight_label)
-        self.config_codeformer_weight_layout.addWidget(self.config_codeformer_weight)
+        self.config_tmp_dir_label = QLabel("Temporary directory:")
+        self.config_tmp_dir = QLineEdit()
+        self.config_tmp_dir_reset = QPushButton("Default")
+        self.config_tmp_dir_layout = QHBoxLayout()
+        self.config_tmp_dir_layout.addWidget(self.config_tmp_dir)
+        self.config_tmp_dir_layout.addWidget(self.config_tmp_dir_reset)
 
         self.config_restore_defaults = QPushButton("Restore Defaults")
 
@@ -548,9 +507,9 @@ class KritaSDPluginDocker(DockWidget):
         self.config_layout.addWidget(self.config_delete_temp_files)
         self.config_layout.addWidget(self.config_fix_aspect_ratio)
         self.config_layout.addWidget(self.config_only_full_img_tiling)
-        self.config_layout.addLayout(self.config_face_restorer_model_layout)
-        self.config_layout.addLayout(self.config_codeformer_weight_layout)
         self.config_layout.addWidget(self.config_restore_defaults)
+        self.config_layout.addWidget(self.config_tmp_dir_label)
+        self.config_layout.addLayout(self.config_tmp_dir_layout)
         self.config_layout.addStretch()
 
         self.config_widget = QWidget()
@@ -568,8 +527,7 @@ class KritaSDPluginDocker(DockWidget):
             Qt.CheckState.Checked if script.cfg('fix_aspect_ratio', bool) else Qt.CheckState.Unchecked)
         self.config_only_full_img_tiling.setCheckState(
             Qt.CheckState.Checked if script.cfg('only_full_img_tiling', bool) else Qt.CheckState.Unchecked)
-        self.config_face_restorer_model.setCurrentIndex(script.cfg('face_restorer_model', int))
-        self.config_codeformer_weight.setValue(script.cfg('codeformer_weight', float))
+        self.config_tmp_dir.setText(script.cfg('tmp_dir', str))
 
     def connect_config_interface(self):
         self.config_base_url.textChanged.connect(
@@ -593,11 +551,11 @@ class KritaSDPluginDocker(DockWidget):
         self.config_only_full_img_tiling.toggled.connect(
             partial(script.set_cfg, "only_full_img_tiling")
         )
-        self.config_face_restorer_model.currentIndexChanged.connect(
-            partial(script.set_cfg, "face_restorer_model")
+        self.config_tmp_dir.textChanged.connect(
+            partial(script.set_cfg, "tmp_dir")
         )
-        self.config_codeformer_weight.valueChanged.connect(
-            partial(script.set_cfg, "codeformer_weight")
+        self.config_tmp_dir_reset.released.connect(
+            lambda: self.config_tmp_dir.setText(default_tmp_dir)
         )
         self.config_restore_defaults.released.connect(
             lambda: self.restore_defaults()

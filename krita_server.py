@@ -1,10 +1,12 @@
 import contextlib
 import threading
 import math
+import shutil
 import time
 import yaml
-import os
 from typing import Optional
+from fastapi.responses import FileResponse
+from fastapi import UploadFile
 
 import numpy as np
 from pydantic import BaseModel
@@ -26,7 +28,7 @@ def load_config():
 def save_img(image, sample_path, filename):
     path = os.path.join(sample_path, filename)
     image.save(path)
-    return os.path.abspath(path)
+    return os.path.basename(path)
 
 
 def fix_aspect_ratio(base_size, max_size, orig_width, orig_height):
@@ -70,6 +72,8 @@ def collect_prompt(opts, key):
         return prompt
     raise Exception("wtf man, fix your prompts")
 
+class ImageRequest(BaseModel):
+    file_name: str
 
 class Txt2ImgRequest(BaseModel):
     orig_width: int
@@ -164,12 +168,21 @@ async def read_item():
             "upscalers": [upscaler.name for upscaler in shared.sd_upscalers],
             **opt}
 
+@app.post("/result")
+async def get_result(req: ImageRequest):
+    print(f'get_result: {req.file_name}')
+    opt = load_config()['txt2img']
+    print(f'sample_path: {opt["sample_path"]}')
+    path = os.path.join(opt['sample_path'], req.file_name)
+    print(f'loading {path}')
+    return FileResponse(path)
 
 @app.post("/txt2img")
 async def f_txt2img(req: Txt2ImgRequest):
     print(f"txt2img: {req}")
 
     opt = load_config()['txt2img']
+    sample_path = opt['sample_path']
     set_face_restorer(req.face_restorer or opt['face_restorer'],
                       req.codeformer_weight or opt['codeformer_weight'])
 
@@ -207,7 +220,6 @@ async def f_txt2img(req: Txt2ImgRequest):
         0
     )
 
-    sample_path = opt['sample_path']
     os.makedirs(sample_path, exist_ok=True)
     resized_images = [modules.images.resize_image(0, image, req.orig_width, req.orig_height) for image in output_images]
     outputs = [save_img(image, sample_path, filename=f"{int(time.time())}_{i}.png")
@@ -215,12 +227,22 @@ async def f_txt2img(req: Txt2ImgRequest):
     print(f"finished: {outputs}\n{info}")
     return {"outputs": outputs, "info": info}
 
+@app.post("/saveimg")
+async def f_saveimg(file: UploadFile):
+    print(f'saveimg: {file.filename}')
+    opt = load_config()['plugin']
+    path = os.path.join(opt['sample_path'], file.filename)
+    print(f'saving {path}')
+    with open(path, 'wb') as f:
+        shutil.copyfileobj(file.file, f)
+    return {"path": path}
 
 @app.post("/img2img")
 async def f_img2img(req: Img2ImgRequest):
     print(f"img2img: {req}")
 
     opt = load_config()['img2img']
+    opt_plugin = load_config()['plugin']
     set_face_restorer(req.face_restorer or opt['face_restorer'],
                       req.codeformer_weight or opt['codeformer_weight'])
 
@@ -232,11 +254,13 @@ async def f_img2img(req: Img2ImgRequest):
 
     mode = req.mode or opt['mode']
 
-    image = Image.open(req.src_path)
+    path = os.path.join(opt_plugin['sample_path'], req.src_path)
+    image = Image.open(path)
     orig_width, orig_height = image.size
 
     if mode == 1:
-        mask = Image.open(req.mask_path).convert('L')
+        mask_path = os.path.join(opt_plugin['sample_path'], req.mask_path)
+        mask = Image.open(mask_path).convert('L')
     else:
         mask = None
 
@@ -313,7 +337,9 @@ async def f_upscale(req: UpscaleRequest):
     print(f"upscale: {req}")
 
     opt = load_config()['upscale']
-    image = Image.open(req.src_path).convert('RGB')
+    opt_plugin = load_config()['plugin']
+    path = os.path.join(opt_plugin['sample_path'], req.src_path)
+    image = Image.open(path).convert('RGB')
     orig_width, orig_height = image.size
 
     upscaler_index = get_upscaler_index(req.upscaler_name or opt['upscaler_name'])
